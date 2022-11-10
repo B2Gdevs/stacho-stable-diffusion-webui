@@ -5,6 +5,7 @@ import sys
 import importlib.util
 import shlex
 import platform
+from tqdm import tqdm
 
 dir_repos = "repositories"
 dir_extensions = "extensions"
@@ -165,18 +166,23 @@ def prepare_enviroment():
     print(f"Python {sys.version}")
     print(f"Commit hash: {commit}")
     
+    print("installing torch")
     if not is_installed("torch") or not is_installed("torchvision"):
         run(f'"{python}" -m {torch_command}', "Installing torch and torchvision", "Couldn't install torch")
 
+    print("running cuda test")
     if not skip_torch_cuda_test:
         run_python("import torch; assert torch.cuda.is_available(), 'Torch is not able to use GPU; add --skip-torch-cuda-test to COMMANDLINE_ARGS variable to disable this check'")
 
+    print("installing gfpgan")
     if not is_installed("gfpgan"):
         run_pip(f"install {gfpgan_package}", "gfpgan")
 
+    print("installing clip")
     if not is_installed("clip"):
         run_pip(f"install {clip_package}", "clip")
 
+    print("installing xformers")
     if (not is_installed("xformers") or reinstall_xformers) and xformers:
         if platform.system() == "Windows":
             if platform.python_version().startswith("3.10"):
@@ -190,22 +196,29 @@ def prepare_enviroment():
             run_pip("install xformers", "xformers")
 
     if not is_installed("deepdanbooru") and deepdanbooru:
+        print("deepdanbooru flag seen, installing deepdanbooru")
         run_pip(f"install {deepdanbooru_package}#egg=deepdanbooru[tensorflow] tensorflow==2.10.0 tensorflow-io==0.27.0", "deepdanbooru")
 
     if not is_installed("pyngrok") and ngrok:
+        print("pyngrok flag seen, installing pyngrok")
         run_pip("install pyngrok", "ngrok")
 
     os.makedirs(dir_repos, exist_ok=True)
 
-    git_clone(stable_diffusion_repo, repo_dir('stable-diffusion'), "Stable Diffusion", stable_diffusion_commit_hash)
-    git_clone(taming_transformers_repo, repo_dir('taming-transformers'), "Taming Transformers", taming_transformers_commit_hash)
-    git_clone(k_diffusion_repo, repo_dir('k-diffusion'), "K-diffusion", k_diffusion_commit_hash)
-    git_clone(codeformer_repo, repo_dir('CodeFormer'), "CodeFormer", codeformer_commit_hash)
-    git_clone(blip_repo, repo_dir('BLIP'), "BLIP", blip_commit_hash)
+    repos_to_clone = [[stable_diffusion_repo, repo_dir('stable-diffusion'), "Stable Diffusion", stable_diffusion_commit_hash],
+                        [taming_transformers_repo, repo_dir('taming-transformers'), "Taming Transformers", taming_transformers_commit_hash],
+                        [k_diffusion_repo, repo_dir('k-diffusion'), "K-diffusion", k_diffusion_commit_hash],
+                        [codeformer_repo, repo_dir('CodeFormer'), "CodeFormer", codeformer_commit_hash],
+                        [blip_repo, repo_dir('BLIP'), "BLIP", blip_commit_hash]]
 
+    for repo in tqdm(repos_to_clone, desc="Cloning Repos"):
+        git_clone(*repo)
+
+    print("installing lpips for CodeFormer")
     if not is_installed("lpips"):
         run_pip(f"install -r {os.path.join(repo_dir('CodeFormer'), 'requirements.txt')}", "requirements for CodeFormer")
 
+    print("installing python requirements")
     run_pip(f"install -r {requirements_file}", "requirements for Web UI")
 
     run_extensions_installers()
