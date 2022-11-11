@@ -27,11 +27,11 @@ def run(command, desc=None, errdesc=None, custom_env=None):
     if result.returncode != 0:
 
         message = f"""{errdesc or 'Error running command'}.
-Command: {command}
-Error code: {result.returncode}
-stdout: {result.stdout.decode(encoding="utf8", errors="ignore") if len(result.stdout)>0 else '<empty>'}
-stderr: {result.stderr.decode(encoding="utf8", errors="ignore") if len(result.stderr)>0 else '<empty>'}
-"""
+                    Command: {command}
+                    Error code: {result.returncode}
+                    stdout: {result.stdout.decode(encoding="utf8", errors="ignore") if len(result.stdout)>0 else '<empty>'}
+                    stderr: {result.stderr.decode(encoding="utf8", errors="ignore") if len(result.stderr)>0 else '<empty>'}
+                    """
         raise RuntimeError(message)
 
     return result.stdout.decode(encoding="utf8", errors="ignore")
